@@ -17,6 +17,11 @@ class Obj(object):
 
 
 def judgetoposame(obj1, obj2):
+    '''
+    :param obj1: 第一个物体
+    :param obj2: 第二个物体
+    :return: 两个物体的拓扑是否一致
+    '''
     v1 = obj1.vertex
     v2 = obj2.vertex
     f1 = obj1.edges
@@ -24,12 +29,12 @@ def judgetoposame(obj1, obj2):
     if v1.size == v2.size:
         fig1 = plt.figure()
         ax1 = Axes3D(fig1)
-        tmp = np.random.randint(low=0, high=int(v1.size/3), size=int(v1.size/20), dtype=np.int32)
+        tmp = np.random.randint(low=0, high=int(v1.size/3), size=int(v1.size/100), dtype=np.int32)
         ax1.scatter(v1[tmp, 0], v1[tmp, 1], v1[tmp, 2], color='red')
         fig2 = plt.figure()
         ax2 = Axes3D(fig2)
         ax2.scatter(v1[tmp, 0], v1[tmp, 1], v1[tmp, 2], color='blue')
-        print(f1-f2)
+        # print(f1-f2)
         return (f1 == f2).all()
     else:
         return False
@@ -44,7 +49,7 @@ def main(obj1_path, obj2_path):
 
 
 if __name__ == '__main__':
-    obj1_path = 'D:\\Deformation-Transfer-Matlab-master\\Dingyuan.obj'
-    obj2_path = 'D:\\Deformation-Transfer-Matlab-master\\Huling.obj'
+    obj1_path = 'D:\\YujunModel\\xiaoyue_align_eye\\eye1.obj'
+    obj2_path = 'D:\\YujunModel\\xiaoyue_align_eye\\eye2.obj'
     print('the {} and {} topology same is {}'.format(obj1_path, obj2_path, main(obj1_path, obj2_path)))
     plt.show()
