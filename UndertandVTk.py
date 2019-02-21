@@ -20,6 +20,7 @@ renWin = vtk.vtkRenderWindow()
 5、renWin = vtk.vtkRenderWindow() 渲染结果的载体，render 传给他
 6、iren = vtk.vtkRenderWindowInteractor() 将第五步中的renWin作为参数传入，创建一个交互式渲染窗口，这样就用户就可以用鼠标控制了
 7、note： 一个程序中可以有很多actor，但是只能有一个渲染窗口和一个渲染器
+8、vtk 使用自己内部的数据结构，比如定义点和线什么的，不能用list 结构,需要先声明一个vtk对象，然后再将list数据插入到对象中
 """
 
 def show(file_name):
@@ -29,6 +30,7 @@ def show(file_name):
 
      mapper = vtk.vtkPolyDataMapper()
      mapper.SetInputConnection(reader.GetOutputPort())
+     reader.
 
      actor.SetMapper(mapper)
      # actor.RotateY(45)
