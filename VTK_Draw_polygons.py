@@ -11,16 +11,18 @@ from util import loadObj
 7、建立渲染器
 8、建立渲染窗口
 9、建立渲染交互式窗口
+note: 把mapper之前用来做数据处理，mapper传给actor之后就用来渲染了，所以把mapper作为一个函数是最合适，耦合比较小
 """
-
-if __name__ == "__main__":
-    filenames = ["test.obj"]
-    vertexs, faces = loadObj(filenames[0])
-
+def GetPoyMapper(vertexs, faces):
+    """
+    :param vertexs: obj 顶点
+    :param faces: 点序
+    :return: 传给actor使用的mapper
+    """
     # Setup four points
     points = vtk.vtkPoints()
     for v in vertexs:
-        points.InsertNextPoint(v[0], v[1], v[2])  #设置顶点
+        points.InsertNextPoint(v[0], v[1], v[2])  # 设置顶点
 
     # Create the polygon
     polygon = vtk.vtkPolygon()
@@ -28,10 +30,10 @@ if __name__ == "__main__":
     polygons = vtk.vtkCellArray()  # 设置单元 设置拓扑结构
     for i, f in enumerate(faces):
         if len(f) == 4:
-            polygon.GetPointIds().SetId(0, f[0]-1)
-            polygon.GetPointIds().SetId(1, f[1]-1)
-            polygon.GetPointIds().SetId(2, f[2]-1)
-            polygon.GetPointIds().SetId(3, f[3]-1)
+            polygon.GetPointIds().SetId(0, f[0] - 1)
+            polygon.GetPointIds().SetId(1, f[1] - 1)
+            polygon.GetPointIds().SetId(2, f[2] - 1)
+            polygon.GetPointIds().SetId(3, f[3] - 1)
         if len(f) == 3:
             polygon.GetPointIds().SetId(0, f[0] - 1)
             polygon.GetPointIds().SetId(1, f[1] - 1)
@@ -48,7 +50,13 @@ if __name__ == "__main__":
         mapper.SetInput(polygonPolyData)
     else:
         mapper.SetInputData(polygonPolyData)
+    return mapper
 
+
+if __name__ == "__main__":
+    filenames = ["test.obj"]
+    vertexs, faces = loadObj(filenames[0])
+    mapper = GetPoyMapper(vertexs, faces)
     actor = vtk.vtkActor()
     actor.SetMapper(mapper)
 
