@@ -1,4 +1,5 @@
 import bpy
+import os
 
 root_path = "\\\\192.168.80.195\data3\LiyouWang"
 model_path = os.path.join(root_path, "AlignedHead")
