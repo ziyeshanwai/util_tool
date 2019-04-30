@@ -11,13 +11,14 @@ from util import *
 PCA结果产生较大影响，在本文人脸中需要归一化，在将特征变量变回原始数据的表达形式时，
 要加均值
 PCA是像最大方差的方向做投影，如果数据归一化了，那么各个维度间的差距会变小，导致主成分提取不好
+PCA 还可以进行去噪声
 """
 colorMaps = ["Reds", "Oranges", "Purples", "Accent", "black-white", "blue-red",
              "Blues", "bone", "Greens", "Greys", "purples"]
 
 
 if __name__ == "__main__":
-    face_model_path = "\\\\192.168.80.195\data3\LiyouWang\smooth_curve_face"
+    face_model_path = "\\\\192.168.80.195\data3\LiyouWang\PCA_ALign"
     vert0, face0 = loadObj(os.path.join(face_model_path, "0.obj"))
     if not os.path.exists(os.path.join(face_model_path, "summary.npy")):
         verts = np.empty([len(vert0*3), 1], dtype=np.float32)
@@ -35,22 +36,28 @@ if __name__ == "__main__":
         print("{} saved..".format(os.path.join(face_model_path, "summary.npy")))
     else:
         verts = np.load(os.path.join(face_model_path, "summary.npy"))
-        verts_row_samples = verts.transpose()
-        mean_value = np.mean(verts_row_samples, axis=0)
-        verts_row_samples_mean = verts_row_samples - mean_value
-        var_value = np.var(verts_row_samples, axis=0)
-        data = verts_row_samples_mean/var_value
-        print("verts_row_samples_mean shape is {}".format(mean_value.shape))
-        print("verts_row_samples_std shape is {}".format(var_value.shape))
-        pca = PCA(n_components=0.99998, whiten=False)
-        pca.fit(verts_row_samples)
-        print("components_ shape is {}".format(pca.components_.shape))
-        # feature_vector = coe.dot(pca.components_) + mean_value
-        writeObj(os.path.join("./Models", "{}.obj".format("mean_value")), mean_value.reshape([-1, 3]).tolist(), face0)
-        for i in range(0, 10):
-            feature_vector = pca.components_[i, :] # + mean_value
-            v = np.reshape(feature_vector, [-1, 3])
-            writeObj(os.path.join("./Models", "{}.obj".format(i)), v.tolist(), face0)
+    verts_row_samples = verts.transpose()
+    mean_value = np.mean(verts_row_samples, axis=0)
+    verts_row_samples_mean = verts_row_samples - mean_value
+    pca = PCA(n_components=0.99998, whiten=False)
+    pca.fit(verts_row_samples)
+    print("方差解释率为 {}".format(pca.explained_variance_))
+    # feature_vector = coe.dot(pca.components_) + mean_value
+    data_reduced = pca.transform(verts_row_samples)
+    print("coe is {}".format(data_reduced.shape))
+    print("特征向量的维度是{}".format(pca.components_.shape))
+    writeObj(os.path.join("./Models", "{}.obj".format("mean_value")), mean_value.reshape([-1, 3]).tolist(), face0)
+    for i in range(0, 10):
+        feature_vector = pca.components_[i, :] # + mean_value
+        v = np.reshape(feature_vector, [-1, 3])
+        writeObj(os.path.join("./Models", "{}.obj".format(i)), v.tolist(), face0)
             # print(np.dot(pca.components_[i, :], pca.components_[i+1, :].T))
+        # PCA_align = os.path.join("\\\\192.168.80.195\\data3\\LiyouWang", "PCA_ALign")
+        # coe = data_reduced[:, 1:]
+        # feature_vec = pca.components_[1:, :]
+        # stablized_data = np.dot(coe, feature_vec) + mean_value  # 去噪声
+        # for i in range(0, 497):
+        #     v = np.reshape(stablized_data[i, :], [-1, 3])
+        #     writeObj(os.path.join(PCA_align, "{}.obj".format(i)), v, face0)
 
 
