@@ -10,5 +10,5 @@ for obj in obj_names:
     bpy.ops.import_scene.obj(filepath=os.path.join(model_path, obj))
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
     bpy.context.selected_objects[0].location = mathutils.Vector((0,0,0))
-    bpy.ops.export_scene.obj(filepath=os.path.join(output_path, obj), use_selection=True, use_materials=False)
+    bpy.ops.export_scene.obj(filepath=os.path.join(output_path, obj), use_selection=True, use_materials=False,use_normals=False)
     bpy.ops.object.delete()
