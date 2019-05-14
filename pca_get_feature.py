@@ -18,12 +18,13 @@ colorMaps = ["Reds", "Oranges", "Purples", "Accent", "black-white", "blue-red",
 
 
 if __name__ == "__main__":
-    face_model_path = "\\\\192.168.80.195\data3\LiyouWang\PCA_ALign"
-    vert0, face0 = loadObj(os.path.join(face_model_path, "0.obj"))
+    face_model_path = "\\\\192.168.80.195\\data3\\LiyouWang\\simple_dist_0419"
+    pca_align = True
+    vert0, face0 = loadObj(os.path.join(face_model_path, "smooth-0.obj"))
     if not os.path.exists(os.path.join(face_model_path, "summary.npy")):
         verts = np.empty([len(vert0*3), 1], dtype=np.float32)
-        for i in range(0, 500):
-            face_file = os.path.join(face_model_path, "{}.obj".format(i))
+        for i in range(0, 571):
+            face_file = os.path.join(face_model_path, "smooth-{}.obj".format(i))
             if os.path.exists(face_file):
                 vert, face = loadObj(face_file)
                 vert = np.array(vert, dtype=np.float32).reshape([-1, 1])
@@ -32,6 +33,7 @@ if __name__ == "__main__":
                     print("process {}...".format(i))
             else:
                 print("{} is not existed".format(face_file))
+        verts = np.delete(verts, 0, axis=1)
         np.save(os.path.join(face_model_path, "summary.npy"), verts)
         print("{} saved..".format(os.path.join(face_model_path, "summary.npy")))
     else:
@@ -41,23 +43,25 @@ if __name__ == "__main__":
     verts_row_samples_mean = verts_row_samples - mean_value
     pca = PCA(n_components=0.99998, whiten=False)
     pca.fit(verts_row_samples)
-    print("方差解释率为 {}".format(pca.explained_variance_))
+    # print(verts_row_samples.shape)
+    # print("方差解释率为 {}".format(pca.explained_variance_))
     # feature_vector = coe.dot(pca.components_) + mean_value
     data_reduced = pca.transform(verts_row_samples)
+    print(data_reduced.shape)
     print("coe is {}".format(data_reduced.shape))
     print("特征向量的维度是{}".format(pca.components_.shape))
     writeObj(os.path.join("./Models", "{}.obj".format("mean_value")), mean_value.reshape([-1, 3]).tolist(), face0)
     for i in range(0, 10):
-        feature_vector = pca.components_[i, :] # + mean_value
+        feature_vector = pca.components_[i, :]  # + mean_value
         v = np.reshape(feature_vector, [-1, 3])
         writeObj(os.path.join("./Models", "{}.obj".format(i)), v.tolist(), face0)
-            # print(np.dot(pca.components_[i, :], pca.components_[i+1, :].T))
-        # PCA_align = os.path.join("\\\\192.168.80.195\\data3\\LiyouWang", "PCA_ALign")
-        # coe = data_reduced[:, 1:]
-        # feature_vec = pca.components_[1:, :]
-        # stablized_data = np.dot(coe, feature_vec) + mean_value  # 去噪声
-        # for i in range(0, 497):
-        #     v = np.reshape(stablized_data[i, :], [-1, 3])
-        #     writeObj(os.path.join(PCA_align, "{}.obj".format(i)), v, face0)
+    if pca_align:
+        PCA_align = os.path.join("\\\\192.168.80.195\\data3\\LiyouWang", "2019-5-13-pcaalign")
+        coe = data_reduced[:, 1:]
+        feature_vec = pca.components_[1:, :]
+        stablized_data = np.dot(coe, feature_vec) + mean_value  # 去噪声
+        for i in range(0, stablized_data.shape[0]):
+            v = np.reshape(stablized_data[i, :], [-1, 3])
+            writeObj(os.path.join(PCA_align, "smooth-{}.obj".format(i)), v, face0)
 
 
