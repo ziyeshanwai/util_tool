@@ -25,7 +25,7 @@ for obj in objs:
     bpy.ops.object.join()
 
     bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-    bpy.ops.mesh.remove_doubles() # remove double_points
+    bpy.ops.mesh.remove_doubles(threshold=1e-6) # remove double_points
     bpy.ops.object.mode_set(mode='OBJECT', toggle=False) # 
-    bpy.ops.export_scene.obj(filepath=os.path.join(output_path, obj), use_selection=True)
+    bpy.ops.export_scene.obj(filepath=os.path.join(output_path, obj), use_selection=True, use_materials=False)
     bpy.ops.object.delete()
