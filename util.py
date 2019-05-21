@@ -177,8 +177,6 @@ def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
     tv = qv
     for f in self_trif:
         trif.append(f)
-    trif.append(self_trif)
-    print("convert in Quad2Tri..")
     return tv, trif, index
 
 
