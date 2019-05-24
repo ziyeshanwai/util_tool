@@ -5,8 +5,8 @@ bpy.ops.object.mode_set(mode = 'OBJECT')
 selected_verts = [v for v in bpy.context.active_object.data.vertices if v.select]
 ind = []
 for sv in selected_verts:
-     print(sv.index)
-	 ind.append(sv)
+    print(sv.index)
+    ind.append(sv.index)
 
 
 ###2.基于给定的索引选择点 与前面配合使用效果最佳
