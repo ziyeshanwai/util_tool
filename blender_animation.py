@@ -33,6 +33,7 @@ def loadObj(path):
                         faces.append(face)
         return (vertics, faces)
 
+
 frames = 5
 bpy.context.scene.frame_start = 0
 bpy.context.scene.frame_end = frames
@@ -50,4 +51,4 @@ for i in range(0, frames):
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
         bpy.ops.object.mode_set(mode='EDIT', toggle=False)
         bpy.ops.anim.insert_keyframe_animall()
-		print("the {} is inserted".format(i))
+        print("the {} is inserted".format(i))
