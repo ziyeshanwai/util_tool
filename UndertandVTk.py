@@ -1,7 +1,8 @@
 import os
 
 import vtk
-
+from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
+import numpy
 
 base_file = "C:\\Users\\Administrator\\Desktop\\xiaoyue_OBJ_Seq"
 test_file = "xiaoyue.0001.obj"
@@ -27,10 +28,17 @@ def show(file_name):
      # load  obj file
      reader = vtk.vtkOBJReader()
      reader.SetFileName(file_name)
+     # print(reader.GetOutput().GetPoints())
+     #
+     # out = vtk_to_numpy(reader.GetOutput().GetCellData().GetNormals())
+     # print(out)
+     # for i in range(0, reader.GetOutput().GetNumberOfPoints()):
+     #      print('ddd')
+     #      print(reader.GetOutput().GetPoint(i))
 
      mapper = vtk.vtkPolyDataMapper()
      mapper.SetInputConnection(reader.GetOutputPort())
-     reader.
+
 
      actor.SetMapper(mapper)
      # actor.RotateY(45)
@@ -47,13 +55,13 @@ def show(file_name):
      # Create a renderwindowinteractor
      iren = vtk.vtkRenderWindowInteractor()
      iren.SetRenderWindow(renWin)
-     camera = vtk.vtkCamera()
-     camera.SetFocalPoint(0, 0, 0)
-     camera.SetPosition(0, -0, 50)
-     camera.ComputeViewPlaneNormal()
-     camera.SetViewUp(0, 1, 0)
-     camera.Zoom(0.4)
-     ren.SetActiveCamera(camera)
+     # camera = vtk.vtkCamera()
+     # camera.SetFocalPoint(0, 0, 0)
+     # camera.SetPosition(0, -0, 50)
+     # camera.ComputeViewPlaneNormal()
+     # camera.SetViewUp(0, 1, 0)
+     # camera.Zoom(0.4)
+     # ren.SetActiveCamera(camera)
 
 
      # Enable user interface interactor
