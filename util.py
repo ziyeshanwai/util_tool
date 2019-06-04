@@ -9,26 +9,6 @@ from scipy.optimize import least_squares
 from math import atan2
 
 
-def Anti_shake_single(index, coord):
-    global tmp_coord
-    MPT = 3.14159265358979323846
-    MINCUTOFF = 10
-    BETA = 0.05
-    FREQUENCY = 10
-    if index == 0:
-        tmp_coord = coord
-    else:
-        tmp2_coord = []
-        for indx in range(0, coord.shape[0]):
-            dcutoff_x = MINCUTOFF + BETA*abs(coord[indx] - tmp_coord[indx])
-            tao_x = 1./(2*MPT*dcutoff_x)
-            alpha_x = 1./(1+tao_x*FREQUENCY)
-            new_coord_x = alpha_x*coord[indx]+(1-alpha_x)*tmp_coord[indx]
-            tmp2_coord.append(new_coord_x)
-        tmp_coord = tmp2_coord
-    return tmp_coord
-
-
 def save_pickle_file(filename, file):
     with open(filename, 'wb') as f:
         pickle.dump(file, f)
@@ -121,7 +101,6 @@ def GetFaceMapper(vertexs, faces):
         mapper.SetInputData(polygonPolyData)
     return mapper
 
-
 def loadObj(path):
     """Load obj file
     读取三角形和四边形的mesh
@@ -132,12 +111,12 @@ def loadObj(path):
         lines = f.readlines()
         vertics = []
         faces = []
-        vts = []
         for line in lines:
             if line.startswith('v') and not line.startswith('vt') and not line.startswith('vn'):
                 line_split = line.split()
                 ver = line_split[1:4]
                 ver = [float(v) for v in ver]
+                # print(ver)
                 vertics.append(ver)
             else:
                 if line.startswith('f'):
@@ -152,15 +131,14 @@ def loadObj(path):
                         face = line_split[1:]
                         face = [int(fa) for fa in face]
                         faces.append(face)
-
-        return (vertics, faces)
+        return vertics, faces
 
     else:
         print('格式不正确，请检查obj格式')
         return
 
 
-def writeObj(file_name_path, vertexs, faces, vts=None):
+def writeObj(file_name_path, vertexs, faces):
     """write the obj file to the specific path
        file_name_path:保存的文件路径
        vertexs:顶点数组 list
@@ -172,14 +150,10 @@ def writeObj(file_name_path, vertexs, faces, vts=None):
             f.write("v {} {} {}\n".format(v[0], v[1], v[2]))
         for face in faces:
             if len(face) == 4:
-                f.write("f {} {} {} {}\n".format(face[0], face[1], face[2], face[3])) # 保存四个顶点
+                f.write("f {} {} {} {}\n".format(face[0], face[1], face[2], face[3]))  # 保存四个顶点
             if len(face) == 3:
                 f.write("f {} {} {}\n".format(face[0], face[1], face[2]))  # 保存三个顶点
-        if vts != None:
-            for vt in vts:
-                f.write("vt {} {}\n".format(vt[0], vt[1]))
         print("saved mesh to {}".format(file_name_path))
-
 
 def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
     """
@@ -201,7 +175,10 @@ def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
             self_trif.append(face)
     index = len(trif)
     tv = qv
-    trif.append(self_trif)
+    for f in self_trif:
+        trif.append(f)
+    # print(trif)
+    # print("convert in Quad2Tri..")
     return tv, trif, index
 
 
@@ -220,7 +197,9 @@ def Tri2Quad(tv, tf, index):  # 将三角mesh 转化为 四边形mesh
     if len(tf) == index:
         pass
     else:
-        qf.append(tf[index:])
+        for f in tf[index:]:
+            qf.append(f)
+    print("convert in Tri2Quad..")
     return tv, qf
 
 
@@ -397,7 +376,7 @@ def ExtractFaceVertexIndex(Face_verts, Head_verts, err=1e-9):
     for v in f_v:
         assert len(v) == 3, '顶点长度不为3'
         h_tmp = h_v - v
-        hv_sum = np.sum(h_tmp**2, axis=1)
+        hv_sum = np.sum(h_tmp ** 2, axis=1)
         ind = np.where(hv_sum <= err)
         assert len(ind[0]) >= 1, '点序为空, 人脸数据可能头部数据不匹配'
         index.append(ind[0][0])
@@ -446,7 +425,7 @@ def batch_convert_head_to_face(head_path, face_index, face_f, face_path):
     :param face_f: 面部点序
     :return: 最后一个转化的face_v face_f
     """
-    files = os.listdir(head_path)
+   files = os.listdir(head_path)
     for file_name in files:
         if file_name.endswith('.obj'):
             if os.path.exists(os.path.join(face_path, file_name)):
@@ -936,12 +915,14 @@ if __name__ == '__main__':
     # """
     # 将小月四边形转化为三角形面
     # """
-    # # charactor_dir = "D:\\Blendshape-Based Animation\\Alien"
-    # # charactor_name = "alien.obj"
-    # # qv, qf = loadObj(os.path.join(charactor_dir, charactor_name))
-    # # tv, tf, index = Quad2Tri(qv, qf)
-    # # writeObj(os.path.join(charactor_dir, "alien_tri.obj"), tv, tf)
-    # # save_pickle_file(os.path.join(charactor_dir, 'index.pkl'), index)
+    charactor_dir = "D:\\FaceExpressionTransfer\\Models\\p4\\Target\\Face"
+    charactor_name = "GuLang_head_01.obj"
+    qv, qf = loadObj(os.path.join(charactor_dir, charactor_name))
+    tv, tf, index = Quad2Tri(qv, qf)
+    writeObj(os.path.join(charactor_dir, "alien_tri.obj"), tv, tf)
+    save_pickle_file(os.path.join(charactor_dir, 'index.pkl'), index)
+    qv, qf = Tri2Quad(tv, tf, index)
+    writeObj(os.path.join(charactor_dir, "alien_quad.obj"), qv, qf)
     #
     # """
     # 批量将迁移过后的pose的三角形mesh 转化为四边形面片
@@ -1013,15 +994,23 @@ if __name__ == '__main__':
     # """
     # 批量提取面部数据与还原测试
     # """
-    # # face_v, face_f = loadObj(os.path.join('D:\\Blendshape-Animation\\Transfered\\Small_sister1\\Charactor\\Tri\\Face\\NeutralPose', 'Xiaoyue.face.obj'))
-    # # head_v, head_f = loadObj(os.path.join('D:\\Blendshape-Animation\\Transfered\\Small_sister1\\Charactor\\Tri\\Head\\NeutralPose', 'Xiaoyue_quad.obj'))
-    # # index = ExtractFaceVertexIndex(face_v, head_v)  # 确定face_index
-    # # # save_pickle_file(os.path.join('D:\\Blendshape-Based Animation\\Alien\\NP_alien\\head', 'face_index.pkl'), index)
+    # face_v, face_f = loadObj(os.path.join('D:\\FaceExpressionTransfer\\Models\\p4\\Target\\Face', 'GuLang_head_01.obj'))
+    # head_v, head_f = loadObj(os.path.join('D:\\FaceExpressionTransfer\\Models\\p4\\Target\\head', 'GuLang_head_01(2).obj'))
+    # index = ExtractFaceVertexIndex(face_v, head_v)  # 确定face_index
+    # f_v, f_f = ExtracFaceFromHead(head_v, index, face_f)
+    # writeObj(os.path.join("D:\\delete", "test1.obj"), f_v, f_f)
+    # # save_pickle_file(os.path.join('D:\\Blendshape-Based Animation\\Alien\\NP_alien\\head', 'face_index.pkl'), index)
     # # head_path = 'D:\\Blendshape-Based Animation\\charactor\\charactor_triangles'
-    # # face_path = 'D:\\Blendshape-Animation\\Transfered\\Small_sister1\\Charactor\\Tri\\Face\\Blendshapes'
+    # face_path = 'D:\\FaceExpressionTransfer\\transfered\\GuLang\\Charactor\\Quad\\Face\\AlignedBlendshapes'
     # # f_v, f_f = batch_convert_head_to_face(head_path, index, face_f, face_path)
-    # # head_path_tosave = 'D:\\Blendshape-Based Animation\\Alien\\Transerfed_Head_Tri_mesh'
-    # # h_v, h_f = batch_convert_face_to_head(face_path, head_path_tosave, head_v, head_f, index)
+    # head_path_tosave = 'D:\\delete'
+    # face1_v, face_f = loadObj(os.path.join('D:\\FaceExpressionTransfer\\transfered\\GuLang\\Charactor\\Quad\\Face\\AlignedBlendshapes', 'Neutral_pose.obj'))
+    # hea_v, hea_f = ConvertFace2Head(face1_v, head_v, head_f, index)
+    # f_v, f_f = ExtracFaceFromHead(hea_v, index, face_f)
+    #
+    # writeObj(os.path.join("D:\\delete", "test2.obj"), f_v, face_f)
+    # writeObj(os.path.join("D:\\delete", "test.obj"), hea_v, head_f)
+    # h_v, h_f = batch_convert_face_to_head(face_path, head_path_tosave, head_v, head_f, index)
     #
     #
     # """测试对齐人脸功能"""
