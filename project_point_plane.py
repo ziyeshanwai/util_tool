@@ -45,7 +45,23 @@ if __name__ == "__main__":
 
     file_path = "D:\\pycharm_project\\Fit_hands\\manopth\\CameraMatrix"
     file_name = "48072910100.xml"
-    node_name = "CameraMatrix"
+    node_name_0 = "CameraMatrix"
+    node_name_1 = "Intrinsics"
+    node_name_2 = "Distortion"
+    image = os.path.join("../image", "402.jpg")
     xml_file = os.path.join(file_path, file_name)
-    came_mat = LoadXML(xml_file, node_name)
-    print(came_mat)
+    came_mat = LoadXML(xml_file, node_name_0)
+    # print(came_mat)
+    Intrinsics = LoadXML(xml_file, node_name_1)
+    # print(Intrinsics)
+    Distortion = LoadXML(xml_file, node_name_2)
+    img = cv2.imread(image)
+    small_img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
+    cv2.namedWindow("src")
+    cv2.imshow("src", small_img)
+    undis_img = cv2.undistort(img, Intrinsics, Distortion)  # 去除畸变之后的图片数据
+    cv2.namedWindow("dst")
+    print(Intrinsics.dot(came_mat))
+    small_img = cv2.resize(undis_img, (0, 0), fx=0.5, fy=0.5)
+    cv2.imshow("dst", small_img)
+    cv2.waitKey(0)
