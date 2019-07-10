@@ -97,10 +97,11 @@ def Project_to_2d_torch(hand_cor, camera_r_t, Intrinsics):
 
 if __name__ == "__main__":
     hand_output_path = "\\\\192.168.20.63\\ai\\Liyou_wang_data\\handProjectImageFitting_result"
-    file_path = "\\\\192.168.20.63\\ai\\calibration\\2019_3_1\\xml_ret_3_14"
-    key_points_2d_json_file = os.path.join("../json_file", "2dkeypoints.json")
-    image_path = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_image", "49011110010")
-    file_name = "49011110010.xml"
+    file_path = "\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\camera\\camera_2019_7_5_1"
+    camera_number = "49011110010"
+    image_path = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\Image", camera_number)
+    file_name = "{}.xml".format(camera_number)
+    key_points_2d_json_file = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\json", camera_number, "2dkeypoints.json")
     node_name_0 = "CameraMatrix"
     node_name_1 = "Intrinsics"
     node_name_2 = "Distortion"
@@ -108,11 +109,9 @@ if __name__ == "__main__":
     mano_layer = ManoLayer(
         mano_root='D:\\pycharm_project\\Fit_hands\\manopth\\mano\\models', use_pca=True, ncomps=ncomps,
         flat_hand_mean=False)
-    image = os.path.join(image_path, "001.png")
+    image = os.path.join(image_path, "1736.jpeg")
     xml_file = os.path.join(file_path, file_name)
     came_mat = LoadXML(xml_file, node_name_0)
-    # Camera_r_t = torch.from_numpy(came_mat.astype(np.float32))
-    # Camera_r_t.requires_grad = True
     print(came_mat)
     Intrinsics = LoadXML(xml_file, node_name_1)
     Distortion = LoadXML(xml_file, node_name_2)
@@ -130,7 +129,7 @@ if __name__ == "__main__":
 
     Hand_joints_list = []
     # number_frames = len(Frames_keypoints)
-    json_file = "..\\json_file\\3dkeypointsNot.json"
+    json_file = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\json\\2019_07_05_11_06_37_0_1", "3dkeypointsNot.json")
     cor = None
     f = open(json_file, 'r')
     Frames_keypoints = []
@@ -139,7 +138,8 @@ if __name__ == "__main__":
         cor = dic['people'][0]["hand_right_keypoints_3d"]
         Frames_keypoints.append(cor)
     f.close()
-    cors, _ = get_Cordinate(Frames_keypoints, 0)  # 抽取指定帧
+    Frame_number = 1735
+    cors, _ = get_Cordinate(Frames_keypoints, Frame_number)  # 抽取指定帧
     # hand_verts, hand_joints = mano_layer(random_pose, random_shape)
     # hand_cor = hand_joints[0, :, :]
     # hand_cor_aligned, s, R, t = AlignTwoFaceWithFixedPoints(cors, hand_cor.detach().numpy(), [0, 2, 5, 9, 13, 17], non_linear_align=False,
@@ -150,8 +150,12 @@ if __name__ == "__main__":
     # cors = s * R.dot(np.array(hand_cor.detach().numpy(), dtype=np.float32).T) + t  # 将mano手的世界坐标系转化为相机标定时用的世界坐标系
     # cors = cors.T  # 转置成为[-1, 3]的代码
     uv_cor = Project_to_2d(cors, M)
-    for point in uv_cor:
+    Frames_2d_keypoints = GetJsonCorList(key_points_2d_json_file)
+    _2d_uv_cor, _ = get_Cordinate_2d(Frames_2d_keypoints, Frame_number)
+    print(_2d_uv_cor.shape)
+    for i, point in enumerate(uv_cor):
         cv2.circle(undis_img, (int(point[0]), int(point[1])), radius=2, color=(0, 0, 255), thickness=5)
+        cv2.circle(undis_img, (int(_2d_uv_cor[i][0]), int(_2d_uv_cor[i][1])), radius=2, color=(0, 255, 0), thickness=5)
     small_img = cv2.resize(undis_img, (0, 0), fx=0.5, fy=0.5)
     cv2.imshow("dst", small_img)
     cv2.waitKey(0)
