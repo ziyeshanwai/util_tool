@@ -1,12 +1,47 @@
 import vtk
 import os
 import pickle
-import json
 import scipy.io as io
 import numpy as np
-from Util.align_trajectory import align_sim3
+from Util.align_trajectory import align_sim3, align_se3
 from scipy.optimize import least_squares
 from math import atan2
+import json
+
+
+def Anti_shake_single(index, coord):
+    global tmp_coord
+    MPT = 3.14159265358979323846
+    MINCUTOFF = 10
+    BETA = 0.05
+    FREQUENCY = 10
+    if index == 0:
+        tmp_coord = coord
+    else:
+        tmp2_coord = []
+        for indx in range(0, coord.shape[0]):
+            dcutoff_x = MINCUTOFF + BETA*abs(coord[indx] - tmp_coord[indx])
+            tao_x = 1./(2*MPT*dcutoff_x)
+            alpha_x = 1./(1+tao_x*FREQUENCY)
+            new_coord_x = alpha_x*coord[indx]+(1-alpha_x)*tmp_coord[indx]
+            tmp2_coord.append(new_coord_x)
+        tmp_coord = tmp2_coord
+    return tmp_coord
+
+
+def load_json_file(file_name):
+    if os.path.exists(file_name):
+        with open(file_name, 'r') as f:
+            data = json.load(f)
+        return data
+    else:
+        print("{} 文件不存在".format(file_name))
+
+
+def write_json_file(file_name):
+    with open(file_name, 'w') as f:
+        json.dump(data, f)
+        print("保存{}成功".format(file_name))
 
 
 def save_pickle_file(filename, file):
@@ -63,6 +98,7 @@ def GetTriangleMapper(vertexs, faces):
     mapper.SetInputData(linesPolyData)
     return mapper
 
+
 def GetFaceMapper(vertexs, faces):
     """
     :param vertexs: obj 顶点
@@ -101,6 +137,7 @@ def GetFaceMapper(vertexs, faces):
         mapper.SetInputData(polygonPolyData)
     return mapper
 
+
 def loadObj(path):
     """Load obj file
     读取三角形和四边形的mesh
@@ -116,7 +153,6 @@ def loadObj(path):
                 line_split = line.split()
                 ver = line_split[1:4]
                 ver = [float(v) for v in ver]
-                # print(ver)
                 vertics.append(ver)
             else:
                 if line.startswith('f'):
@@ -150,9 +186,9 @@ def writeObj(file_name_path, vertexs, faces):
             f.write("v {} {} {}\n".format(v[0], v[1], v[2]))
         for face in faces:
             if len(face) == 4:
-                f.write("f {} {} {} {}\n".format(face[0], face[1], face[2], face[3]))  # 保存四个顶点
+                f.write("f {} {} {} {}\n".format(face[0], face[1], face[2], face[3])) # 保存四个顶点
             if len(face) == 3:
-                f.write("f {} {} {}\n".format(face[0], face[1], face[2]))  # 保存三个顶点
+                f.write("f {} {} {}\n".format(face[0], face[1], face[2])) # 保存三个顶点
         print("saved mesh to {}".format(file_name_path))
 
 def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
@@ -175,10 +211,7 @@ def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
             self_trif.append(face)
     index = len(trif)
     tv = qv
-    for f in self_trif:
-        trif.append(f)
-    # print(trif)
-    # print("convert in Quad2Tri..")
+    trif.append(self_trif)
     return tv, trif, index
 
 
@@ -197,9 +230,7 @@ def Tri2Quad(tv, tf, index):  # 将三角mesh 转化为 四边形mesh
     if len(tf) == index:
         pass
     else:
-        for f in tf[index:]:
-            qf.append(f)
-    print("convert in Tri2Quad..")
+        qf.append(tf[index:])
     return tv, qf
 
 
@@ -376,7 +407,7 @@ def ExtractFaceVertexIndex(Face_verts, Head_verts, err=1e-9):
     for v in f_v:
         assert len(v) == 3, '顶点长度不为3'
         h_tmp = h_v - v
-        hv_sum = np.sum(h_tmp ** 2, axis=1)
+        hv_sum = np.sum(h_tmp**2, axis=1)
         ind = np.where(hv_sum <= err)
         assert len(ind[0]) >= 1, '点序为空, 人脸数据可能头部数据不匹配'
         index.append(ind[0][0])
@@ -425,17 +456,13 @@ def batch_convert_head_to_face(head_path, face_index, face_f, face_path):
     :param face_f: 面部点序
     :return: 最后一个转化的face_v face_f
     """
-   files = os.listdir(head_path)
+    files = os.listdir(head_path)
     for file_name in files:
         if file_name.endswith('.obj'):
-            if os.path.exists(os.path.join(face_path, file_name)):
-                print("skip file {}".format(os.path.join(face_path, file_name)))
-                # 文件存在便不再重新生成 节约生成时间 所以要完全重新生成的话，要清空生成文件夹下所有的文件
-            else:
-                file = os.path.join(head_path, file_name)
-                head_v, head_f = loadObj(file)
-                face_v, face_f = ExtracFaceFromHead(head_v, face_index, face_f)
-                writeObj(os.path.join(face_path, file_name), face_v, face_f)
+            file = os.path.join(head_path, file_name)
+            head_v, head_f = loadObj(file)
+            face_v, face_f = ExtracFaceFromHead(head_v, face_index, face_f)
+            writeObj(os.path.join(face_path, file_name), face_v, face_f)
         else:
             pass
     return face_v, face_f
@@ -565,8 +592,9 @@ def R_axis_angle(matrix, axis, angle):
     return matrix
 
 
-def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, non_linear_align=False):
+def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, non_linear_align=False, return_sRt=False):
     """
+    非线性对齐要求对齐点数大于8
     将第二个人脸对齐到第一个人脸, 通过计算旋转矩阵, 平移矩阵等等 注意第二个像第一个人脸对齐 即要对齐的人脸是第二个参数
     :param FirstFace: 第一个人脸顶点数据 n x 3
     :param SecondFace: 第二个人脸顶点数据 第一个人脸和第二个人最好定数一样 n x 3
@@ -579,7 +607,7 @@ def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, 
         Face2 = np.array(SecondFace_verts)
         Face1_select = Face1[select_index, :]
         Face2_selcet = Face2[select_index, :]
-        R, t, s = similarity_fitting(Face2_selcet, Face1_select)
+        R, t, s = caculate_transform(Face1_select, Face2_selcet)
         model_aligned = Face2.dot((s * R).T) + t
     else:
         select_index = np.array(pointsindex)
@@ -594,7 +622,10 @@ def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, 
         t_error = np.sqrt(np.sum(np.multiply(alignment_error, alignment_error), 0))
         print("model aligned error is {}".format(np.mean(t_error)))
         model_aligned = model_aligned.T
-    return model_aligned.tolist()
+    if return_sRt:
+        return model_aligned.tolist(), s, R, t
+    else:
+        return model_aligned.tolist()
 
 
 def BatchAlignFacewithRandomPoints(FaceToalignPath, FaceAligned_verts, SavePath):
@@ -620,7 +651,7 @@ def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, 
     :param FaceToalignPath: 要对齐的人脸路径
     :param FaceAligned_verts: 选好的对齐人脸顶点
     :param SavePath: 要保存的路径
-    :return: 最后一个对齐的人脸
+    :param points_index: 对其人脸选用的点序
     """
     file_names = os.listdir(FaceToalignPath)
     for filename in file_names:
@@ -636,39 +667,42 @@ def resSimXform(b, A, B):
     t = b[4:7]
     R = np.zeros((3, 3))
     R = R_axis_angle(R, b[0:3], b[3])
-    rot_A = R.dot(A) + t[:, np.newaxis]
+    rot_A = b[7]*R.dot(A) + t[:, np.newaxis]  # fix error
     result = np.sqrt(np.sum((B-rot_A)**2, axis=0))
     return result
 
 
-def similarity_fitting(Points_A, Points_B):
+def caculate_transform(Model, Data):
     """
+    使用此方法要求点数大于等于8
+    对齐Data 到 Model
     calculate the R t s between PointsA and PointsB
-    :param Points_A: n * 3  ndarray
-    :param Points_B: n * 3  ndarray
+    :param Model: n * 3  ndarray
+    :param Data: n * 3  ndarray
     :return: R t s
     """
-    row, col = Points_A.shape
-    if row > col:
-        Points_A = Points_A.T  # 3 * n
-    row, col = Points_B.shape
-    if row > col:
-        Points_B = Points_B.T  # 3 * n
-    cent = np.vstack((np.mean(Points_A, axis=1), np.mean(Points_B, axis=1))).T
+
+    model = Model.T  # 3 * n
+    data = Data.T  # 3 * n
+    cent = np.vstack((np.mean(model, axis=1), np.mean(data, axis=1))).T
     cent_0 = cent[:, 0]
-    cent_0 = cent_0[:, np.newaxis]
+    model_center = cent_0[:, np.newaxis]
     cent_1 = cent[:, 1]
-    cent_1 = cent_1[:, np.newaxis]
-    X = Points_A - cent_0
-    Y = Points_B - cent_1
-    S = X.dot(np.eye(Points_A.shape[1], Points_A.shape[1])).dot(Y.T)
-    U, D, V = np.linalg.svd(S)
+    data_center = cent_1[:, np.newaxis]
+    model_zerocentered = model - model_center
+    data_zerocentered = data - data_center
+    n = model.shape[1]
+    Cov_matrix = 1.0/n * model_zerocentered.dot(data_zerocentered.T)
+    U, D, V = np.linalg.svd(Cov_matrix)
     V = V.T
     W = np.eye(V.shape[0], V.shape[0])
-    W[-1, -1] = np.linalg.det(V.dot(U.T))
+    if np.linalg.det(V.dot(W).dot(U.T)) == -1:
+        print("计算出的旋转矩阵为反射矩阵，纠正中..")
+        W[-1, -1] = np.linalg.det(V.dot(U.T))
     R = V.dot(W).dot(U.T)
-    t = cent_1 - R.dot(cent_0)
-    s = 1.0
+    sigma2 = (1.0 / n) * np.multiply(data_zerocentered, data_zerocentered).sum()
+    s = 1.0 / sigma2 * np.trace(np.dot(np.diag(D), W))
+    t = model_center - s*R.dot(data_center)
     b0 = np.zeros((8,))
     if np.isreal(R).all():
         axis, theta = R_to_axis_angle(R)
@@ -678,17 +712,17 @@ def similarity_fitting(Points_A, Points_B):
             b0 = np.abs(b0)
     else:
         print("R is {}".format(R))
-        os.system("pause")
+        print("R中存在非实数")
     b0[4:7] = t.T
     b0[7] = s
-    b = least_squares(fun=resSimXform, x0=b0, jac='3-point', method='lm', args=(Points_A, Points_B),
-                      ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100000)
+    b = least_squares(fun=resSimXform, x0=b0, jac='2-point', method='lm', args=(data, model),
+                      ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100000)  # 参数只能是一维向量么
     r = b.x[0:4]
     t = b.x[4:7]
     s = b.x[7]
     R = R_axis_angle(R, r[0:3], r[3])
-    rot_A = s*R.dot(Points_A) + t[:, np.newaxis]
-    res = np.sum(np.sqrt(np.sum((Points_B-rot_A)**2, axis=1)))/Points_B.shape[1]
+    rot_A = s*R.dot(data) + t[:, np.newaxis]
+    res = np.sum(np.sqrt(np.sum((model-rot_A)**2, axis=1)))/model.shape[1]
     print("对齐误差是{}".format(res))
     return R, t, s
 
@@ -915,14 +949,12 @@ if __name__ == '__main__':
     # """
     # 将小月四边形转化为三角形面
     # """
-    charactor_dir = "D:\\FaceExpressionTransfer\\Models\\p4\\Target\\Face"
-    charactor_name = "GuLang_head_01.obj"
-    qv, qf = loadObj(os.path.join(charactor_dir, charactor_name))
-    tv, tf, index = Quad2Tri(qv, qf)
-    writeObj(os.path.join(charactor_dir, "alien_tri.obj"), tv, tf)
-    save_pickle_file(os.path.join(charactor_dir, 'index.pkl'), index)
-    qv, qf = Tri2Quad(tv, tf, index)
-    writeObj(os.path.join(charactor_dir, "alien_quad.obj"), qv, qf)
+    # # charactor_dir = "D:\\Blendshape-Based Animation\\Alien"
+    # # charactor_name = "alien.obj"
+    # # qv, qf = loadObj(os.path.join(charactor_dir, charactor_name))
+    # # tv, tf, index = Quad2Tri(qv, qf)
+    # # writeObj(os.path.join(charactor_dir, "alien_tri.obj"), tv, tf)
+    # # save_pickle_file(os.path.join(charactor_dir, 'index.pkl'), index)
     #
     # """
     # 批量将迁移过后的pose的三角形mesh 转化为四边形面片
@@ -994,23 +1026,15 @@ if __name__ == '__main__':
     # """
     # 批量提取面部数据与还原测试
     # """
-    # face_v, face_f = loadObj(os.path.join('D:\\FaceExpressionTransfer\\Models\\p4\\Target\\Face', 'GuLang_head_01.obj'))
-    # head_v, head_f = loadObj(os.path.join('D:\\FaceExpressionTransfer\\Models\\p4\\Target\\head', 'GuLang_head_01(2).obj'))
-    # index = ExtractFaceVertexIndex(face_v, head_v)  # 确定face_index
-    # f_v, f_f = ExtracFaceFromHead(head_v, index, face_f)
-    # writeObj(os.path.join("D:\\delete", "test1.obj"), f_v, f_f)
-    # # save_pickle_file(os.path.join('D:\\Blendshape-Based Animation\\Alien\\NP_alien\\head', 'face_index.pkl'), index)
+    # # face_v, face_f = loadObj(os.path.join('D:\\Blendshape-Animation\\Transfered\\Small_sister1\\Charactor\\Tri\\Face\\NeutralPose', 'Xiaoyue.face.obj'))
+    # # head_v, head_f = loadObj(os.path.join('D:\\Blendshape-Animation\\Transfered\\Small_sister1\\Charactor\\Tri\\Head\\NeutralPose', 'Xiaoyue_quad.obj'))
+    # # index = ExtractFaceVertexIndex(face_v, head_v)  # 确定face_index
+    # # # save_pickle_file(os.path.join('D:\\Blendshape-Based Animation\\Alien\\NP_alien\\head', 'face_index.pkl'), index)
     # # head_path = 'D:\\Blendshape-Based Animation\\charactor\\charactor_triangles'
-    # face_path = 'D:\\FaceExpressionTransfer\\transfered\\GuLang\\Charactor\\Quad\\Face\\AlignedBlendshapes'
+    # # face_path = 'D:\\Blendshape-Animation\\Transfered\\Small_sister1\\Charactor\\Tri\\Face\\Blendshapes'
     # # f_v, f_f = batch_convert_head_to_face(head_path, index, face_f, face_path)
-    # head_path_tosave = 'D:\\delete'
-    # face1_v, face_f = loadObj(os.path.join('D:\\FaceExpressionTransfer\\transfered\\GuLang\\Charactor\\Quad\\Face\\AlignedBlendshapes', 'Neutral_pose.obj'))
-    # hea_v, hea_f = ConvertFace2Head(face1_v, head_v, head_f, index)
-    # f_v, f_f = ExtracFaceFromHead(hea_v, index, face_f)
-    #
-    # writeObj(os.path.join("D:\\delete", "test2.obj"), f_v, face_f)
-    # writeObj(os.path.join("D:\\delete", "test.obj"), hea_v, head_f)
-    # h_v, h_f = batch_convert_face_to_head(face_path, head_path_tosave, head_v, head_f, index)
+    # # head_path_tosave = 'D:\\Blendshape-Based Animation\\Alien\\Transerfed_Head_Tri_mesh'
+    # # h_v, h_f = batch_convert_face_to_head(face_path, head_path_tosave, head_v, head_f, index)
     #
     #
     # """测试对齐人脸功能"""
