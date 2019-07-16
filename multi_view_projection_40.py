@@ -93,17 +93,19 @@ def Project_to_2d_torch(hand_cor, camera_r_t, Intrinsics):
 
 
 if __name__ == "__main__":
-    hand_output_path = "\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\output_transform_6"
-    file_path = "\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\camera\\camera_2019_7_5_1"
+    hand_output_path = "\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\output_transform_7"
+    file_path = "\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\camera\\camera_2019_7_5_1"  # 相机路径
     Camera_names = ["48070810266", "48070810273", "48072910098", "48072910099", "48072910100", "48072910102",
                     "48072910103", "48072910104", "48072910105", "48072910107", "48072910108", "48072910109",
                     "48072910110", "48072910111", "48072910114", "48170110023", "48170110026", "48170110038",
                     "48170110028", "48170110036", "48170110037", "48170110032", "48170110024", "48170110033",
                     "48170110041", "48182210098", "48182210099", "48182210101", "48182210103", "48182210104",
                     "48182210106", "49011110004", "49011110010", "49011110011", "49011110012", "49011110015",
-                    "49011110019", "49011110021", "49011110022", "49011110024"]
+                    "49011110019", "49011110021", "49011110022", "49011110024"]  # 相机名称
     # Camera_names = ["48072910098", "48072910104", "48170110037", "49011110010", "48182210099", "48170110037"]
     # error = ["48170110032", "48170110024", "48170110033","48170110038"]
+    Json_Path_3d = "\\\\192.168.20.63\\S_pose\\spose_offline_result\\3dResult\\2019_07_12_10_38_27_3-cpm"  #3D 关键点路径
+    Json_root_path_2d = "\\\\192.168.20.63\\S_pose\\spose_offline_result\\all2dKeyPoints\\2019_07_12_10_38_27_3-cpm"  # 每个相机2D关键点存放路径
     node_name_0 = "CameraMatrix"
     node_name_1 = "Intrinsics"
     node_name_2 = "Distortion"
@@ -112,7 +114,7 @@ if __name__ == "__main__":
     mano_layer = ManoLayer(
         mano_root='D:\\pycharm_project\\Fit_hands\\manopth\\mano\\models', use_pca=True, ncomps=ncomps,
         flat_hand_mean=False)
-    image = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\Image\\48072910104", "001.jpeg")
+    # image = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\Image\\48072910104", "001.jpeg")
     Camera_matrixs = []
     Intrinsics = []
     for name in Camera_names:
@@ -137,7 +139,7 @@ if __name__ == "__main__":
     first_time = True
     i = 0
     Hand_joints_list = []
-    json_file = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\json\\2019_07_05_11_06_37_0_1", "3dkeypointsNot.json")
+    json_file = os.path.join(Json_Path_3d, "3dkeypointsNot.json")
     cor = None
     f = open(json_file, 'r')
     Frames_keypoints = []
@@ -157,7 +159,7 @@ if __name__ == "__main__":
     key_points_2d_lists = []
     Frame_2d_numbers_list = []
     for name in Camera_names:
-        key_points_2d_json_file = os.path.join("\\\\192.168.20.63\\ai\\Liyou_wang_data\\Hand_Data\\json", name, "2dkeypoints.json")
+        key_points_2d_json_file = os.path.join(Json_root_path_2d, name, "2dkeypoints.json")
         key_points_2d_list, Frame_numbers = GetJsonCorList(key_points_2d_json_file)
         key_points_2d_lists.append(key_points_2d_list)
         Frame_2d_numbers_list.append(Frame_numbers)
