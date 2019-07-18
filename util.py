@@ -1,12 +1,12 @@
 import vtk
 import os
 import pickle
+import json
 import scipy.io as io
 import numpy as np
-from Util.align_trajectory import align_sim3, align_se3
+from Util.align_trajectory import align_sim3
 from scipy.optimize import least_squares
 from math import atan2
-import json
 
 
 def Anti_shake_single(index, coord):
@@ -27,21 +27,6 @@ def Anti_shake_single(index, coord):
             tmp2_coord.append(new_coord_x)
         tmp_coord = tmp2_coord
     return tmp_coord
-
-
-def load_json_file(file_name):
-    if os.path.exists(file_name):
-        with open(file_name, 'r') as f:
-            data = json.load(f)
-        return data
-    else:
-        print("{} 文件不存在".format(file_name))
-
-
-def write_json_file(file_name):
-    with open(file_name, 'w') as f:
-        json.dump(data, f)
-        print("保存{}成功".format(file_name))
 
 
 def save_pickle_file(filename, file):
@@ -98,7 +83,6 @@ def GetTriangleMapper(vertexs, faces):
     mapper.SetInputData(linesPolyData)
     return mapper
 
-
 def GetFaceMapper(vertexs, faces):
     """
     :param vertexs: obj 顶点
@@ -148,6 +132,7 @@ def loadObj(path):
         lines = f.readlines()
         vertics = []
         faces = []
+        vts = []
         for line in lines:
             if line.startswith('v') and not line.startswith('vt') and not line.startswith('vn'):
                 line_split = line.split()
@@ -167,14 +152,15 @@ def loadObj(path):
                         face = line_split[1:]
                         face = [int(fa) for fa in face]
                         faces.append(face)
-        return vertics, faces
+
+        return (vertics, faces)
 
     else:
         print('格式不正确，请检查obj格式')
         return
 
 
-def writeObj(file_name_path, vertexs, faces):
+def writeObj(file_name_path, vertexs, faces, vts=None):
     """write the obj file to the specific path
        file_name_path:保存的文件路径
        vertexs:顶点数组 list
@@ -188,8 +174,12 @@ def writeObj(file_name_path, vertexs, faces):
             if len(face) == 4:
                 f.write("f {} {} {} {}\n".format(face[0], face[1], face[2], face[3])) # 保存四个顶点
             if len(face) == 3:
-                f.write("f {} {} {}\n".format(face[0], face[1], face[2])) # 保存三个顶点
+                f.write("f {} {} {}\n".format(face[0], face[1], face[2]))  # 保存三个顶点
+        if vts != None:
+            for vt in vts:
+                f.write("vt {} {}\n".format(vt[0], vt[1]))
         print("saved mesh to {}".format(file_name_path))
+
 
 def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
     """
@@ -459,10 +449,14 @@ def batch_convert_head_to_face(head_path, face_index, face_f, face_path):
     files = os.listdir(head_path)
     for file_name in files:
         if file_name.endswith('.obj'):
-            file = os.path.join(head_path, file_name)
-            head_v, head_f = loadObj(file)
-            face_v, face_f = ExtracFaceFromHead(head_v, face_index, face_f)
-            writeObj(os.path.join(face_path, file_name), face_v, face_f)
+            if os.path.exists(os.path.join(face_path, file_name)):
+                print("skip file {}".format(os.path.join(face_path, file_name)))
+                # 文件存在便不再重新生成 节约生成时间 所以要完全重新生成的话，要清空生成文件夹下所有的文件
+            else:
+                file = os.path.join(head_path, file_name)
+                head_v, head_f = loadObj(file)
+                face_v, face_f = ExtracFaceFromHead(head_v, face_index, face_f)
+                writeObj(os.path.join(face_path, file_name), face_v, face_f)
         else:
             pass
     return face_v, face_f
@@ -608,7 +602,7 @@ def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, 
         Face1_select = Face1[select_index, :]
         Face2_selcet = Face2[select_index, :]
         R, t, s = caculate_transform(Face1_select, Face2_selcet)
-        model_aligned = Face2.dot((s * R).T) + t
+        model_aligned = s * R.dot(Face2.T).T + t
     else:
         select_index = np.array(pointsindex)
         Face1 = np.array(FirstFace_verts)
@@ -645,13 +639,13 @@ def BatchAlignFacewithRandomPoints(FaceToalignPath, FaceAligned_verts, SavePath)
             writeObj(os.path.join(SavePath, filename), aligned_v, ToAlign_f)
 
 
-def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, points_index):
+def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, points_index, non_linear_align=False, return_sRt=False):
     """
     批量稳定人脸
     :param FaceToalignPath: 要对齐的人脸路径
     :param FaceAligned_verts: 选好的对齐人脸顶点
     :param SavePath: 要保存的路径
-    :param points_index: 对其人脸选用的点序
+    :return: 最后一个对齐的人脸
     """
     file_names = os.listdir(FaceToalignPath)
     for filename in file_names:
@@ -659,7 +653,7 @@ def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, 
             file = os.path.join(FaceToalignPath, filename)
             ToAlign_v, ToAlign_f = loadObj(file)
             # print("ToAlign_f is {}".format(ToAlign_f))
-            aligned_v = AlignTwoFaceWithFixedPoints(FaceAligned_verts, ToAlign_v, points_index)
+            aligned_v = AlignTwoFaceWithFixedPoints(FaceAligned_verts, ToAlign_v, points_index, non_linear_align, return_sRt)
             writeObj(os.path.join(SavePath, filename), aligned_v, ToAlign_f)
 
 
