@@ -17,6 +17,7 @@ class MyInteractor(vtk.vtkInteractorStyleTrackballCamera):
 
     def OnKeyPressEvent(self, obj, event):
         key = self.GetInteractor().GetKeySym()
+        print(key)
         if key == "Left":
             global count
             count += 1
@@ -55,7 +56,11 @@ class MyInteractor(vtk.vtkInteractorStyleTrackballCamera):
         if key == "Down":
             print("error frames:{}".format(error_frames))
             save_pickle_file(os.path.join(error_frames_path, "error_frames.pkl"), error_frames)
-            print("Down..")
+
+        if key == "Delete":
+            pop_element = error_frames.pop()
+            print("pop the end element {}".format(pop_element))
+
 
             
 
