@@ -205,6 +205,17 @@ def Quad2Tri(qv, qf):# 将四边形mesh 转化为 三角形mesh
     return tv, trif, index
 
 
+def copy_obj(southfile, target_file):
+    """
+    copy obj to designated target file
+    :param southfile: source file
+    :param target_file: target file
+    :return: none
+    """
+    v, f = loadObj(southfile)
+    writeObj(target_file, v, f)
+    
+
 def Tri2Quad(tv, tf, index):  # 将三角mesh 转化为 四边形mesh
     """
     :param tv: 三角形面的的顶点
