@@ -5,7 +5,7 @@
 
 bpy.data.objects['Cube'].select = True    # 2.7x  
 bpy.data.objects['Cube'].select_set(True) # 2.8  
-obj = bpy.context.window.scene.objects[0]
+obj = bpy.context.window.scene.objects[0]     
 bpy.context.view_layer.objects.active = obj    # 'obj' is the active object now
 
 
