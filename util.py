@@ -9,6 +9,25 @@ from scipy.optimize import least_squares
 from math import atan2
 
 
+def LoadXML(file_name, node_name):
+    """
+    :param file_name: 读取的xml文件的路径和名称
+    :param node_name: 读取的xml文件的节点名字
+    :return: 返回对应节点名称的内容
+    """
+    # just like before we specify an enum flag, but this time it is
+    # FILE_STORAGE_READ
+    cv_file = cv2.FileStorage(file_name, cv2.FILE_STORAGE_READ)
+    # for some reason __getattr__ doesn't work for FileStorage object in python
+    # however in the C++ documentation, getNode, which is also available,
+    # does the same thing
+    # note we also have to specify the type to retrieve other wise we only get a
+    # FileNode object back instead of a matrix
+    matrix = cv_file.getNode(node_name).mat()
+    cv_file.release()
+    return matrix
+    
+
 def Anti_shake_single(index, coord):
     global tmp_coord
     MPT = 3.14159265358979323846
