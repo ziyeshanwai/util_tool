@@ -8,6 +8,24 @@ from Util.align_trajectory import align_sim3
 from scipy.optimize import least_squares
 from math import atan2
 
+def DumpXML(file_name, matrix, node_name):
+    """
+
+    :param file_name: 需要保存的文件名称
+    :param matrix: 需要保存的矩阵
+    :param node_name: 需要保存的节点名称
+    :return: 无
+    """
+    # notice how its almost exactly the same, imagine cv2 is the namespace for cv
+    # in C++, only difference is FILE_STORGE_WRITE is exposed directly in cv2
+    cv_file = cv2.FileStorage(file_name, cv2.FILE_STORAGE_WRITE)
+    # this corresponds to a key value pair, internally opencv takes your numpy
+    # object and transforms it into a matrix just like you would do with <<
+    # in c++
+    cv_file.write(node_name, matrix)
+    # note you *release* you don't close() a FileStorage object
+    cv_file.release()
+
 
 def LoadXML(file_name, node_name):
     """
