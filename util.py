@@ -7,6 +7,7 @@ import numpy as np
 from Util.align_trajectory import align_sim3
 from scipy.optimize import least_squares
 from math import atan2
+import cv2
 
 def DumpXML(file_name, matrix, node_name):
     """
