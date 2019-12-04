@@ -4,9 +4,48 @@ import pickle
 import json
 import scipy.io as io
 import numpy as np
-from Util.align_trajectory import align_sim3
+from Util.align_trajectory import align_sim3, my_align_sim3
+from scipy import optimize
 from scipy.optimize import least_squares
 from math import atan2
+import cv2
+
+
+def LoadXML(file_name, node_name):
+    """
+    :param file_name: 读取的xml文件的路径和名称
+    :param node_name: 读取的xml文件的节点名字
+    :return: 返回对应节点名称的内容
+    """
+    # just like before we specify an enum flag, but this time it is
+    # FILE_STORAGE_READ
+    cv_file = cv2.FileStorage(file_name, cv2.FILE_STORAGE_READ)
+    # for some reason __getattr__ doesn't work for FileStorage object in python
+    # however in the C++ documentation, getNode, which is also available,
+    # does the same thing
+    # note we also have to specify the type to retrieve other wise we only get a
+    # FileNode object back instead of a matrix
+    matrix = cv_file.getNode(node_name).mat()
+    cv_file.release()
+    return matrix
+
+
+def load_pts(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, 'r') as f:
+        lines = [l.strip() for l in f.readlines()]
+    line = lines[0]
+    while not line.startswith('{'):
+        line = lines.pop(0)
+
+    data = []
+    for line in lines:
+        if not line.strip().startswith('}'):
+            xpos, ypos = line.split()[:2]
+            data.append((float(xpos), float(ypos)))
+
+    return data
 
 
 def Anti_shake_single(index, coord):
@@ -275,6 +314,17 @@ def loadmarkpoint(txt_path):
         data = json.load(f)
     mark_points = np.array(data)
     return mark_points
+
+
+def load_json(json_file):
+    """
+    load json file
+    :param json_file: json 文件路径
+    :return:
+    """
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    return data
 
 
 def make_Face_Marker(source_obj_path, source_txt, target_obj_path, target_txt, file_mat_path):
@@ -586,11 +636,12 @@ def R_axis_angle(matrix, axis, angle):
     return matrix
 
 
-def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, non_linear_align=False):
+def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, non_linear_align=False, return_sRt=False):
     """
+    非线性对齐要求对齐点数大于8
     将第二个人脸对齐到第一个人脸, 通过计算旋转矩阵, 平移矩阵等等 注意第二个像第一个人脸对齐 即要对齐的人脸是第二个参数
     :param FirstFace: 第一个人脸顶点数据 n x 3
-    :param SecondFace: 第二个人脸顶点数据 第一个人脸和第二个人最好定数一样 n x 3
+    :param SecondFace: 第二个人脸顶点数据 第一个人脸和第二个人最好点数一样 n x 3
     :param pointsindex: 需要對齊所使用的點序 一維list
     :return: 返回第二个人脸对齐后的数据
     """
@@ -600,22 +651,35 @@ def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, 
         Face2 = np.array(SecondFace_verts)
         Face1_select = Face1[select_index, :]
         Face2_selcet = Face2[select_index, :]
-        R, t, s = similarity_fitting(Face2_selcet, Face1_select)
-        model_aligned = Face2.dot((s * R).T) + t
+        R, t, s, res = caculate_transform(Face1_select, Face2_selcet)
+        t = t[:, np.newaxis]
+        model_aligned = s * R.dot(Face2.T) + t
+        alignment_error = model_aligned - Face1.T
+        t_error = np.sqrt(np.sum(np.multiply(alignment_error, alignment_error), 0))
+        res = np.mean(t_error)
+        print("model aligned error is {}".format(res))
+        model_aligned = model_aligned.T
     else:
         select_index = np.array(pointsindex)
         Face1 = np.array(FirstFace_verts)
         Face2 = np.array(SecondFace_verts)
         Face1_select = Face1[select_index, :].T
         Face2_selcet = Face2[select_index, :].T
+        # s, R, t, _ = align_sim3(Face1_select, Face2_selcet)  # demo from web
         s, R, t, _ = align_sim3(Face1_select, Face2_selcet)
         # print("align error is {}".format(error))
         model_aligned = s * R.dot(Face2.T) + t
+        # print("R is {}".format(R))
+        # print("t is {}".format(t))
         alignment_error = model_aligned - Face1.T
         t_error = np.sqrt(np.sum(np.multiply(alignment_error, alignment_error), 0))
-        print("model aligned error is {}".format(np.mean(t_error)))
+        res = np.mean(t_error)
+        print("model aligned error is {}".format(res))
         model_aligned = model_aligned.T
-    return model_aligned.tolist()
+    if return_sRt:
+        return model_aligned.tolist(), s, R, t, res
+    else:
+        return model_aligned.tolist()
 
 
 def BatchAlignFacewithRandomPoints(FaceToalignPath, FaceAligned_verts, SavePath):
@@ -635,7 +699,7 @@ def BatchAlignFacewithRandomPoints(FaceToalignPath, FaceAligned_verts, SavePath)
             writeObj(os.path.join(SavePath, filename), aligned_v, ToAlign_f)
 
 
-def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, points_index):
+def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, points_index, non_linear_align=False, return_sRt=False):
     """
     批量稳定人脸
     :param FaceToalignPath: 要对齐的人脸路径
@@ -649,7 +713,7 @@ def BatchAlignFacewithFixedPoints(FaceToalignPath, FaceAligned_verts, SavePath, 
             file = os.path.join(FaceToalignPath, filename)
             ToAlign_v, ToAlign_f = loadObj(file)
             # print("ToAlign_f is {}".format(ToAlign_f))
-            aligned_v = AlignTwoFaceWithFixedPoints(FaceAligned_verts, ToAlign_v, points_index)
+            aligned_v = AlignTwoFaceWithFixedPoints(FaceAligned_verts, ToAlign_v, points_index, non_linear_align, return_sRt)
             writeObj(os.path.join(SavePath, filename), aligned_v, ToAlign_f)
 
 
@@ -657,39 +721,42 @@ def resSimXform(b, A, B):
     t = b[4:7]
     R = np.zeros((3, 3))
     R = R_axis_angle(R, b[0:3], b[3])
-    rot_A = R.dot(A) + t[:, np.newaxis]
-    result = np.sqrt(np.sum((B-rot_A)**2, axis=0))
+    rot_A = b[7]*R.dot(A) + t[:, np.newaxis]  # fix error
+    result = np.sqrt(np.sum((B-rot_A)**2, axis=0).mean())
     return result
 
 
-def similarity_fitting(Points_A, Points_B):
+def caculate_transform(Model, Data):
     """
+    使用此方法要求点数大于等于8
+    对齐Data 到 Model
     calculate the R t s between PointsA and PointsB
-    :param Points_A: n * 3  ndarray
-    :param Points_B: n * 3  ndarray
+    :param Model: n * 3  ndarray
+    :param Data: n * 3  ndarray
     :return: R t s
     """
-    row, col = Points_A.shape
-    if row > col:
-        Points_A = Points_A.T  # 3 * n
-    row, col = Points_B.shape
-    if row > col:
-        Points_B = Points_B.T  # 3 * n
-    cent = np.vstack((np.mean(Points_A, axis=1), np.mean(Points_B, axis=1))).T
+
+    model = Model.T  # 3 * n
+    data = Data.T  # 3 * n
+    cent = np.vstack((np.mean(model, axis=1), np.mean(data, axis=1))).T
     cent_0 = cent[:, 0]
-    cent_0 = cent_0[:, np.newaxis]
+    model_center = cent_0[:, np.newaxis]
     cent_1 = cent[:, 1]
-    cent_1 = cent_1[:, np.newaxis]
-    X = Points_A - cent_0
-    Y = Points_B - cent_1
-    S = X.dot(np.eye(Points_A.shape[1], Points_A.shape[1])).dot(Y.T)
-    U, D, V = np.linalg.svd(S)
+    data_center = cent_1[:, np.newaxis]
+    model_zerocentered = model - model_center
+    data_zerocentered = data - data_center
+    n = model.shape[1]
+    Cov_matrix = 1.0/n * model_zerocentered.dot(data_zerocentered.T)
+    U, D, V = np.linalg.svd(Cov_matrix)
     V = V.T
     W = np.eye(V.shape[0], V.shape[0])
-    W[-1, -1] = np.linalg.det(V.dot(U.T))
+    if np.linalg.det(V.dot(W).dot(U.T)) == -1:
+        print("计算出的旋转矩阵为反射矩阵，纠正中..")
+        W[-1, -1] = np.linalg.det(V.dot(U.T))
     R = V.dot(W).dot(U.T)
-    t = cent_1 - R.dot(cent_0)
-    s = 1.0
+    sigma2 = (1.0 / n) * np.multiply(data_zerocentered, data_zerocentered).sum()
+    s = 1.0 / sigma2 * np.trace(np.dot(np.diag(D), W))
+    t = model_center - s*R.dot(data_center)
     b0 = np.zeros((8,))
     if np.isreal(R).all():
         axis, theta = R_to_axis_angle(R)
@@ -699,19 +766,21 @@ def similarity_fitting(Points_A, Points_B):
             b0 = np.abs(b0)
     else:
         print("R is {}".format(R))
-        os.system("pause")
+        print("R中存在非实数")
     b0[4:7] = t.T
     b0[7] = s
-    b = least_squares(fun=resSimXform, x0=b0, jac='3-point', method='lm', args=(Points_A, Points_B),
-                      ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100000)
+    # b = least_squares(fun=resSimXform, x0=b0, jac='3-point', method='lm', args=(data, model),
+    #                   ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=1000)  # 参数只能是一维向量么
+    b = optimize.minimize(fun=resSimXform, x0=b0, jac=False, method='BFGS', args=(data, model),
+                          options={"gtol": 0.001, "maxiter": 8000, "disp":False, "eps": 1e-7})
     r = b.x[0:4]
     t = b.x[4:7]
     s = b.x[7]
     R = R_axis_angle(R, r[0:3], r[3])
-    rot_A = s*R.dot(Points_A) + t[:, np.newaxis]
-    res = np.sum(np.sqrt(np.sum((Points_B-rot_A)**2, axis=1)))/Points_B.shape[1]
-    print("对齐误差是{}".format(res))
-    return R, t, s
+    rot_A = s*R.dot(data) + t[:, np.newaxis]
+    res = np.sum(np.sqrt(np.sum((model-rot_A)**2, axis=1)))/model.shape[1]
+    # print("对齐误差是{}".format(res))
+    return R, t, s, res
 
 
 def BlendShapeTransferStep1(Actor_head_path, ActorNeutralHeadPoseName, CharactorHeadPath,

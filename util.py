@@ -5,6 +5,7 @@ import json
 import scipy.io as io
 import numpy as np
 from Util.align_trajectory import align_sim3
+from scipy import optimize
 from scipy.optimize import least_squares
 from math import atan2
 import cv2
@@ -645,13 +646,19 @@ def AlignTwoFaceWithFixedPoints(FirstFace_verts, SecondFace_verts, pointsindex, 
     :return: 返回第二个人脸对齐后的数据
     """
     if non_linear_align:
-        select_index = np.array(pointsindex)
+       select_index = np.array(pointsindex)
         Face1 = np.array(FirstFace_verts)
         Face2 = np.array(SecondFace_verts)
         Face1_select = Face1[select_index, :]
         Face2_selcet = Face2[select_index, :]
-        R, t, s = caculate_transform(Face1_select, Face2_selcet)
-        model_aligned = s * R.dot(Face2.T).T + t
+        R, t, s, res = caculate_transform(Face1_select, Face2_selcet)
+        t = t[:, np.newaxis]
+        model_aligned = s * R.dot(Face2.T) + t
+        alignment_error = model_aligned - Face1.T
+        t_error = np.sqrt(np.sum(np.multiply(alignment_error, alignment_error), 0))
+        res = np.mean(t_error)
+        print("model aligned error is {}".format(res))
+        model_aligned = model_aligned.T
     else:
         select_index = np.array(pointsindex)
         Face1 = np.array(FirstFace_verts)
@@ -758,16 +765,18 @@ def caculate_transform(Model, Data):
         print("R中存在非实数")
     b0[4:7] = t.T
     b0[7] = s
-    b = least_squares(fun=resSimXform, x0=b0, jac='2-point', method='lm', args=(data, model),
-                      ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=100000)  # 参数只能是一维向量么
+    # b = least_squares(fun=resSimXform, x0=b0, jac='3-point', method='lm', args=(data, model),
+    #                   ftol=1e-12, xtol=1e-12, gtol=1e-12, max_nfev=1000)  # 参数只能是一维向量么
+    b = optimize.minimize(fun=resSimXform, x0=b0, jac=False, method='BFGS', args=(data, model),
+                          options={"gtol": 0.001, "maxiter": 8000, "disp":False, "eps": 1e-7})
     r = b.x[0:4]
     t = b.x[4:7]
     s = b.x[7]
     R = R_axis_angle(R, r[0:3], r[3])
     rot_A = s*R.dot(data) + t[:, np.newaxis]
     res = np.sum(np.sqrt(np.sum((model-rot_A)**2, axis=1)))/model.shape[1]
-    print("对齐误差是{}".format(res))
-    return R, t, s
+    # print("对齐误差是{}".format(res))
+    return R, t, s, res
 
 
 def BlendShapeTransferStep1(Actor_head_path, ActorNeutralHeadPoseName, CharactorHeadPath,
