@@ -48,6 +48,9 @@ if __name__ == "__main__":
                     keyblock.slider_min = -1  # 最小值是-1
                     keyblock.value = weight[i-1, 0]
                     keyblock.keyframe_insert("value", frame=frame)
+                    
+                    
+#生成完后记得使用object-->animation-->BakeAction bake 一次动画才行 再导出动画
     
     
     
