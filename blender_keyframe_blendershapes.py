@@ -24,7 +24,7 @@ if __name__ == "__main__":
     else:
         filenames = os.listdir(blendshapes_path)
     base_mesh_name = "head_geo.obj"
-    
+   
     for file in filenames:
         if file.endswith(".obj"):
             bpy.ops.import_scene.obj(filepath=os.path.join(blendshapes_path, file))
@@ -38,10 +38,9 @@ if __name__ == "__main__":
     bpy.data.objects[base_mesh_name[:-4]].select_set(False)
     bpy.ops.object.delete()
     bpy.ops.export_scene.fbx(filepath=os.path.join(fbx_output_path, fbx_name), check_existing=True, axis_forward='-Z', axis_up='Y')
-    
+  
     weights_list_path = os.path.join(r"\\192.168.20.63\ai\Liyou_wang_data\new_version_blendshapes\xiaoyue\blendshape127", "weights_list.pkl")
     weights_list = load_pickle(weights_list_path)
-    
     
     
     filenames.remove(base_mesh_name)
@@ -64,3 +63,14 @@ if __name__ == "__main__":
                     keyblock.value = weight[i-1, 0]
                     keyblock.keyframe_insert("value", frame=frame)
     """
+    bpy.data.objects[base_mesh_name[:-4]].select_set(True)
+    bpy.context.view_layer.objects.active = bpy.data.objects[base_mesh_name[:-4]]
+    bpy.ops.nla.bake(frame_start=0, frame_end=len(weights_list), only_selected=True, visual_keying=False, clear_constraints=False, use_current_action=False, bake_types={'OBJECT'})
+    #print("bake action finished")
+    bpy.ops.export_scene.fbx(filepath=os.path.join(blendshapes_path, fbx_name), check_existing=True, filter_glob="*.fbx", use_selection=False, use_active_collection=False, global_scale=1.0, apply_unit_scale=True, apply_scale_options='FBX_SCALE_NONE', bake_space_transform=False, object_types={'MESH'}, use_mesh_modifiers=False, use_mesh_modifiers_render=True, mesh_smooth_type='OFF', add_leaf_bones=False, use_armature_deform_only=False, armature_nodetype='NULL', bake_anim=True, bake_anim_use_all_bones=True, bake_anim_use_nla_strips=False, bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1.0, bake_anim_simplify_factor=1.0, path_mode='AUTO', embed_textures=False, batch_mode='OFF', use_batch_own_dir=True, use_metadata=True, axis_forward='-Z', axis_up='Y')
+    print("export animation {} finished".format(os.path.join(blendshapes_path, fbx_name)))
+    
+    """
+    #生成完后记得使用object-->animation-->BakeAction bake 一次动画才行 再导出动画
+    
+    
