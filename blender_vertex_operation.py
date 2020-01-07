@@ -24,4 +24,9 @@ else:
 
 # coordinates as tuples
 plain_verts = [vert.to_tuple() for vert in verts]
-print(plain_verts
+selectedVerts = [v for v in bpy.context.active_object.data.vertices if v.select]
+
+for vert in selectedVerts:
+    print(vert.co)
+    vert.co = mathutils.Vector([1,2,3]) # 这种赋值要在obj模式下
+    
