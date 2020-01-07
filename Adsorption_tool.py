@@ -14,6 +14,6 @@ if obj.mode == 'EDIT':  # this method can gennerate effect in edit
     verts_index = [vert.index for vert in bm.verts if vert.select]
     for i, vert in enumerate(verts):
         #print(obj.data.vertices[ind].co )
-        vert.co = reference_obj.data.vertices[verts_index[i]].co
+        vert.co = reference_obj.data.vertices[verts_index[i]].co  # 这种赋值可以在编辑模式下
         #print(obj.data.vertices[ind].co )
     print("finish")
