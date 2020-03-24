@@ -12,6 +12,7 @@ base_mesh_name = "base_mesh.obj"
 for file in filenames:
     if file.endswith(".obj"):
         bpy.ops.import_scene.obj(filepath=os.path.join(blendshapes_path, file))
+        bpy.context.selected_objects[0].name = file[:-4]
 for obj in bpy.context.scene.objects:
     obj.select=True
     	
