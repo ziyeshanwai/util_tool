@@ -28,6 +28,7 @@ if __name__ == "__main__":
     for file in filenames:
         if file.endswith(".obj"):
             bpy.ops.import_scene.obj(filepath=os.path.join(blendshapes_path, file))
+            bpy.context.selected_objects[0].name = file[:-4]
     for obj in bpy.context.scene.objects:
         obj.select_set(True)
             
@@ -41,16 +42,18 @@ if __name__ == "__main__":
   
     weights_list_path = os.path.join(r"\\192.168.20.63\ai\Liyou_wang_data\new_version_blendshapes\xiaoyue\blendshape127", "weights_list.pkl")
     weights_list = load_pickle(weights_list_path)
-    
+    bpy.context.view_layer.objects.active = bpy.data.objects[base_mesh_name[:-4]]
+    ob = bpy.context.active_object
     
     filenames.remove(base_mesh_name)
     for frame in range(0, 1921):
         weight = weights_list[frame]
         print("insert frame {}".format(frame))
         for i, file in enumerate(filenames):
-            #py.data.shape_keys[0].key_blocks[file[:-4]]..slider_min = -1 
-            bpy.data.shape_keys[0].key_blocks[file[:-4]].value=weight[i, 0]
-            bpy.data.shape_keys[0].key_blocks[file[:-4]].keyframe_insert("value", frame=frame)
+            ob.data.shape_keys.name = "key"
+            #bpy.data.shape_keys[0].key_blocks[file[:-4]]..slider_min = -1 
+            ob.data.shape_keys.key_blocks[file[:-4]].value=weight[i, 0]
+            ob.data.shape_keys.key_blocks[file[:-4]].keyframe_insert("value", frame=frame)
             
     """
     for frame in range(0, 1921):
