@@ -19,19 +19,19 @@ def load_pickle_file(filename):
     else:
         print("{} not exist".format(filename))
 
-def choose_vertex(file_path):
+def choose_vertex(file_path, name):
     ob = bpy.context.object
     me = ob.data
     bm = bmesh.from_edit_mesh(me)
     verts_index = [v.index for v in bm.verts if v.select]
     print("verts_index is {}".format(verts_index))
-    save_pickle_file(os.path.join(file_path, "tmp.pkl"), verts_index)
+    save_pickle_file(os.path.join(file_path, "{}.pkl".format(name)), verts_index)
 
-def select_verts(file_path):
+def select_verts(file_path, name):
     ob = bpy.context.object
     me = ob.data
     bm = bmesh.from_edit_mesh(me)
-    verts_index = load_pickle_file(os.path.join(file_path, "tmp.pkl"))
+    verts_index = load_pickle_file(os.path.join(file_path, "{}.pkl".format(name)))
     print("verts_index is {}".format(verts_index))
     for i in verts_index:
          bm.verts[i].select_set(True)
@@ -73,7 +73,8 @@ def generate_contour(file_path, name):
 
 if __name__ == "__main__":
     file_path = r"\\192.168.20.63\ai\Liyou_wang_data\cto_2020_03_18\bs_v0002\contour_v1"
-    #choose_vertex(file_path)
-    #select_verts(file_path)
-    name = "mouth_down_contour_5"
-    generate_contour(file_path, name)
+    name_tmp = "mouth_up_contour_3"
+    #choose_vertex(file_path, name_tmp)
+    select_verts(file_path, name_tmp)
+    generate_name = "mouth_down_contour_5"
+    #generate_contour(file_path, name)
