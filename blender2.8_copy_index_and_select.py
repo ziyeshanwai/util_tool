@@ -71,10 +71,18 @@ def generate_contour(file_path, name):
     save_pickle_file(os.path.join(contour_path, file_name) , sorted_index)
 
 
+def save_verts(file_path, generate_name):
+    ob = bpy.context.object
+    me = ob.data
+    bm = bmesh.from_edit_mesh(me)
+    verts_index = [v.index for v in bm.verts if v.select]
+    save_pickle_file(os.path.join(file_path, "{}.pkl".format(generate_name)) , verts_index)
+
 if __name__ == "__main__":
-    file_path = r"\\192.168.20.63\ai\Liyou_wang_data\cto_2020_03_18\bs_v0002\contour_v1"
-    name_tmp = "mouth_up_contour_3"
+    file_path = r"\\192.168.20.63\ai\Liyou_wang_data\cto_2020_03_18\bs_v0002\contour_v2"
+    #name_tmp = "mouth_up_contour_3"
     #choose_vertex(file_path, name_tmp)
-    select_verts(file_path, name_tmp)
-    generate_name = "mouth_down_contour_5"
-    #generate_contour(file_path, name)
+    #select_verts(file_path, name_tmp)
+    generate_name = "boundry"
+    #generate_contour(file_path, generate_name)
+    save_verts(file_path, generate_name)
