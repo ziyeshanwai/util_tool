@@ -1,5 +1,15 @@
 import bpy
 
+for window in bpy.context.window_manager.windows:
+    screen = window.screen
+
+for area in screen.areas:
+    if area.type == 'VIEW_3D':
+        override = {'window': window, 'screen': screen, 'area': area}
+        bpy.ops.screen.screen_full_area(override)
+        break
+
+
 def smooth_curves():
     """
     smooth key
