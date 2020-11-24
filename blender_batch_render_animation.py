@@ -52,7 +52,7 @@ def render_animation(output_path):
 
 
 def import_fbx(file):
-    bpy.ops.import_scene.fbx(filepath=input_path, global_scale=0.01) # bas
+    bpy.ops.import_scene.fbx(filepath=file, global_scale=0.01) # bas
     bpy.context.selected_objects[0].name ='head_geo'
 
 if __name__ == "__main__":
