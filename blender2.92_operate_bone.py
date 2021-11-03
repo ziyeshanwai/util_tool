@@ -39,7 +39,34 @@ def kdtree_search(kd, co_find):
     for (co, index, dist) in kd.find_range(co_find, 0.5):
         print("    ", co, index, dist)
     return co, index, dist
-    
+
+def armature_offset2pose_offset():
+    mat_local_to_parent = (
+    bone.matrix_local if bone.parent is None else
+    bone.parent.matrix_local.inverted() * bone.matrix_local)
+    pos = mat_local_to_parent.to_translation()
+    quat = mat_local_to_parent.to_quaternion().inverted()
+    return 
+
+def armature_position2pose_position(bone, position):
+    pose_position = bone.matrix_local.inverted() @ position
+    return pose_position
+
+
+def matrix_world(armature_ob, bone_name):
+    """
+    https://blender.stackexchange.com/questions/44637/how-can-i-manually-calculate-bpy-types-posebone-matrix-using-blenders-python-ap
+    """
+    local = armature_ob.data.bones[bone_name].bone.matrix_local
+    basis = armature_ob.pose.bones[bone_name].matrix_basis
+
+    parent = armature_ob.pose.bones[bone_name].parent
+    if parent == None:
+        return  local @ basis
+    else:
+        parent_local = armature_ob.data.bones[parent.name].bone.matrix_local
+        return matrix_world(armature_ob, parent.name) @ (parent_local.inverted() @ local) @ basis
+bons_list[3].bone.matrix_local @ bons_list[3].matrix_basis @ (bons_list[3].bone.matrix_local.inverted() @ bones_list[4].bone.matirx_local) @ bones_list[4].matrix_basis
 """
 if the armature origin is the same with vertices origin,and their coordinate towards is the same
 the they are in the same coordinate space
