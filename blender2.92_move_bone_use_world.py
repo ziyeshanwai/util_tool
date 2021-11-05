@@ -36,6 +36,15 @@ def kdtree_search(kd, co_find):
     co, index, dist = kd.find(co_find)
     return co, index, dist
 
+def check_vertice_in_vertex_group(ob_source, index, vertex_group_name):
+    vertice = ob_source.data.vertices[index]
+    gp_index = [g.group for g in vertice.groups]
+    true_group_index = ob_source.vertex_groups[vertex_group_name].index
+    if true_group_index in gp_index: # if nn points is not in 
+        return True
+    else:
+        return False
+
 
 if __name__ == "__main__":
     
@@ -56,7 +65,17 @@ if __name__ == "__main__":
 #        np_dist = np.array((bone_position1 - bone_position2).to_tuple())
         
         _, index, dist = kdtree_search(kd_tree, bone_position)
-        if bone.name == "FACIAL_L_12IPV_LipUpper14":
+        if ob_source.vertex_groups.find(bone.name) != -1: ## exist the vertex group
+            if not check_vertice_in_vertex_group(ob_source, index, bone.name):
+               print("find new nearest points")
+               for (co, ind, dist) in kd_tree.find_n(bone_position, 100): ## choose top 100
+                    if check_vertice_in_vertex_group(ob_source, ind, bone.name):
+                        index = ind
+                        break
+                
+
+        if bone.name == "":
+            print(check_vertice_in_vertex_group(ob_source, index, bone.name))
             print("index:{}, dist:{}".format(index, dist))
         if dist < 1000:
             offset = ob_source.data.vertices[index].co - bone_position # should keep
