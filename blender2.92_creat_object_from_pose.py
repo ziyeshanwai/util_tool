@@ -38,8 +38,8 @@ def get_face_list(ob):
     return face_list
 
 def print_error(source_ob, target_ob):
-    source_verts_np = np.zeros(len(ob_source.data.vertices) * 3, dtype=np.float32)
-    ob_source.data.vertices.foreach_get('co', source_verts_np)
+    source_verts_np = np.zeros(len(source_ob.data.vertices) * 3, dtype=np.float32)
+    source_ob.data.vertices.foreach_get('co', source_verts_np)
     source = source_verts_np.reshape(-1, 3)
     source = np.array(source_ob.matrix_world) @ np.hstack((source, np.ones((source.shape[0],1)))).T
     target_verts = get_bone_verts(target_ob.name)
@@ -50,8 +50,8 @@ def print_error(source_ob, target_ob):
     return error
 
 def print_error2(source_ob, target_ob):
-    source_verts_np = np.zeros(len(ob_source.data.vertices) * 3, dtype=np.float32)
-    ob_source.data.vertices.foreach_get('co', source_verts_np)
+    source_verts_np = np.zeros(len(source_ob.data.vertices) * 3, dtype=np.float32)
+    source_ob.data.vertices.foreach_get('co', source_verts_np)
     source = source_verts_np.reshape(-1, 3)
     source = np.array(source_ob.matrix_world) @ np.hstack((source, np.ones((source.shape[0],1)))).T
     target_np = np.zeros(len(target_ob.data.vertices) * 3, dtype=np.float32)
@@ -59,7 +59,7 @@ def print_error2(source_ob, target_ob):
     target = target_np.reshape(-1, 3)
     target = np.array(target_ob.matrix_world) @ np.hstack((target, np.ones((target.shape[0],1)))).T
     error = np.mean(np.linalg.norm(source.T[:, :3] - target.T[:, :3], axis=1))
-    print("error is {}".format(error))
+    print("error1 is {}".format(error))
     return error
 
 if __name__ == "__main__":
@@ -70,6 +70,9 @@ if __name__ == "__main__":
     face = get_face_list(ob_tar.data)
     v = get_verts(ob_source)
     creat_object("test", v, face)
-    print_error2(ob_source, bpy.data.objects["test"])
+    print_error(ob_tar, ob_source)
+    print_error2(ob_tar, ob_source)
+    print_error2(ob_tar, bpy.data.objects["test"])
+    print_error2(bpy.data.objects["test"], ob_tar)
     target_verts_np = np.zeros(len(ob_tar.data.vertices) * 3, dtype=np.float32)
 #    print_error(ob_source, ob_tar)
