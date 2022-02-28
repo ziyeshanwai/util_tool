@@ -204,29 +204,3 @@ if __name__ == "__main__":
             write_marker_projection(os.path.join(data_root, camera_name, "{:0>4d}.json".format(f)), marker_dict)
     print("export data over!")
     
-    
-#    p2 = P @ e2
-#    p2 /= p2[2]
-#    print("Projected e2")
-#    print(p2)
-#    print("proj by object_utils")
-#    print(project_by_object_utils(cam, Vector(e2[0:3])))
-
-#    p3 = P @ e3
-#    p3 /= p3[2]
-#    print("Projected e3")
-#    print(p3)
-#    print("proj by object_utils")
-#    print(project_by_object_utils(cam, Vector(e3[0:3])))
-
-#    pO = P @ O
-#    pO /= pO[2]
-#    print("Projected world origin")
-#    print(pO)
-#    print("proj by object_utils")
-#    print(project_by_object_utils(cam, Vector(O[0:3])))
-    
-    # Bonus code: save the 3x4 P matrix into a plain text file
-    # Don't forget to import numpy for this
-#    nP = np.matrix(P)
-    #numpy.savetxt("/tmp/P3x4.txt", nP)  # to select precision, use e.g. fmt='%.2f'
