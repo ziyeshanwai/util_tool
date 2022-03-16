@@ -112,7 +112,7 @@ class MainPanel(bpy.types.Panel):
         layout = self.layout
         layout.prop_search(scene, "TargetOb", scene, "objects")
         layout = self.layout
-        layout.prop(scene, "max_error(mm)")
+        layout.prop(scene, "max_error")
         layout = self.layout
         layout.operator("wm.vis_error", icon= 'CUBE', text= "vis error")
         layout = self.layout
