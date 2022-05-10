@@ -26,7 +26,7 @@ def add_driver(
 
 def create_driver(ob, data_path, expression):
     mesh = obj.data
-    data_path = "key_blocks[\"psd_259\"].value"
+    data_path = data_path
     dr = mesh.shape_keys.driver_add(data_path).driver
     dr.type='SCRIPTED'
     dr.expression = expression
