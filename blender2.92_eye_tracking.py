@@ -90,12 +90,10 @@ def map_tracking_data2_controller(clip_name, keyframes):
     location_sample_np = np.array(locations).T 
     el_samples = np.array(els) - np.array(e_roots)
     er_samples = np.array(ers) - np.array(e_roots)
-#    A = np.hstack((el_samples, er_samples)).T
-    A = ((el_samples + er_samples)/2).T
+    A = np.hstack((el_samples, er_samples)).T
     start_frame = bpy.context.scene.frame_start
     end_frame = bpy.context.scene.frame_end
     for f in range(start_frame, end_frame + 1):  
-#    for f in keyframes:
         print("calculat frame {}".format(f))
         el = get_specified_name_marker_position(clip_name, f, "el")
         er = get_specified_name_marker_position(clip_name, f, "er")
@@ -103,14 +101,12 @@ def map_tracking_data2_controller(clip_name, keyframes):
         if el and er and root:
             eld = np.array(el) - np.array(e_root)
             erd = np.array(er) - np.array(e_root)
-#            b = np.hstack((eld, erd))
-            b = (eld + erd) / 2
+            b = np.hstack((eld, erd))
             weights, _ = nnls(A, b)
-#            weights, residuals, rnk, s = np.linalg.lstsq(A, b)
+            weights, residuals, rnk, s = np.linalg.lstsq(A, b)
             print("weights is {}".format(weights))
-#            print("residuals is {}".format(residuals))
             new_location = location_sample_np.dot(weights[:, np.newaxis])
-            bpy.context.scene.frame_current = f
+            bpy.context.scene.frame_set(f)
             bpy.data.objects["Armature"].pose.bones["eye_controller"].location = mathutils.Vector((new_location[0], new_location[1], new_location[2]))
             bpy.data.objects["Armature"].pose.bones["eye_controller"].keyframe_insert("location", frame=f)
         else:
@@ -119,7 +115,6 @@ def map_tracking_data2_controller(clip_name, keyframes):
 
 if __name__ == "__main__":
     clip_name = 'yourvideo.mp4'
-    initial_tracks(clip_name)
-    keyframes = [12, 657, 970]
+    keyframes = [1, 510, 1178, 1268, 1302, 1365, 1477, 4953, 5347, 5676]
     map_tracking_data2_controller(clip_name, keyframes)
     
