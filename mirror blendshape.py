@@ -6,10 +6,10 @@ import math
 def mirror_blendshape_with_soft_transition():
     # 配置参数
     MIRROR_AXIS = 'X'             # 镜像轴（X/Y/Z）
-    FALLOFF_RADIUS = 0.3          # 影响半径（单位：米）
+    FALLOFF_RADIUS = 0.1          # 影响半径（单位：米）
     SOURCE_KEY = "CTRL_expressions.eyeBlinkL"           # 源形态键名称
     TARGET_KEY = "CTRL_expressions.eyeBlinkR"           # 目标形态键名称
-    FALLOFF_CURVE = 'SPHERE'      # 衰减曲线类型（LINEAR/SMOOTH/ROOT/SPHERE）
+    FALLOFF_CURVE = 'LINEAR'      # 衰减曲线类型（LINEAR/SMOOTH/ROOT/SPHERE）
 
     obj = bpy.context.active_object
     mesh = obj.data
