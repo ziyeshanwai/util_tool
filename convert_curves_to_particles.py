@@ -6,13 +6,8 @@ def main():
     head =  bpy.data.objects["GUYU_FaceMesh_LOD_0_uv_0"]
     curve_data = obj.data.curves
     curve_num = len(curve_data)
-    diff_percent = 0.02
-    # 检查属性是否存在
-    if "surface_uv_coordinate" not in obj.data.attributes:
-        print("找不到'surface_uv_coordinate'属性")
-        return
-    
-#    attr = obj.data.attributes["surface_uv_coordinate"]
+    max_length_diff = 3.5  # 组内最大允许长度差
+
     curve_length_list = []
     uv_coor_list = []
     
@@ -21,9 +16,7 @@ def main():
         point_num = curve.points_length
         start = curve.points[0].position
         end = curve.points[point_num-1].position
-        curve_length = (end - start).length  # 使用Blender内置长度计算
-#        uv = (attr.data[i].vector[0], attr.data[i].vector[1])
-#        uv_coor_list.append(uv)
+        curve_length = (end - start).length
         curve_length_list.append(curve_length)
     
     # 打印全局长度统计
@@ -33,7 +26,6 @@ def main():
     print(f"最小长度: {np.min(curve_length_list):.6f}")
     print(f"总曲线数: {len(curve_length_list)}")
     
-    # 如果没有曲线，直接返回
     if not curve_length_list:
         print("没有找到有效曲线")
         return
@@ -42,7 +34,7 @@ def main():
     sorted_indices = np.argsort(curve_length_list)
     sorted_lengths = np.array(curve_length_list)[sorted_indices]
     
-    # 2. 基于均值阈值的滑动窗口聚类（10%差异）
+    # 2. 基于绝对长度差的滑动窗口聚类
     groups = []
     n = len(sorted_lengths)
     i = 0
@@ -55,19 +47,15 @@ def main():
         # 尝试扩展组
         j = i + 1
         while j < n:
-            # 临时添加下一个元素
-            temp_lengths = current_lengths + [sorted_lengths[j]]
-            temp_mean = np.mean(temp_lengths)
-            temp_min = np.min(temp_lengths)
-            temp_max = np.max(temp_lengths)
+            # 检查新曲线是否满足长度差条件
+            candidate_length = sorted_lengths[j]
+            current_min = min(current_lengths[0], candidate_length)  # 当前组最小长度
+            current_max = max(current_lengths[-1], candidate_length)  # 当前组最大长度
             
-            # 检查最大/最小值与均值的差异是否≤10%
-            max_diff = (temp_max - temp_mean) / temp_mean if temp_mean != 0 else 0
-            min_diff = (temp_mean - temp_min) / temp_mean if temp_mean != 0 else 0
-            
-            if max_diff <= diff_percent and min_diff <= diff_percent:
+            # 如果长度差在允许范围内则加入
+            if current_max - current_min <= max_length_diff:
                 current_indices.append(sorted_indices[j])
-                current_lengths = temp_lengths
+                current_lengths.append(candidate_length)
                 j += 1
             else:
                 break  # 不满足条件则停止扩展
@@ -85,20 +73,15 @@ def main():
     for i, group in enumerate(groups):
         group_min = np.min(group["lengths"])
         group_max = np.max(group["lengths"])
-        group_avg = np.mean(group["lengths"])
+        group_median  = np.median(group["lengths"])
         group_range = group_max - group_min
         group_size = len(group["indices"])
-        
-        # 计算差异百分比
-        max_diff_percent = 100 * (group_max - group_avg) / group_avg if group_avg > 0 else 0
-        min_diff_percent = 100 * (group_avg - group_min) / group_avg if group_avg > 0 else 0
         
         print(f"Group_{i+1}:")
         print(f"  曲线数量: {group_size}")
         print(f"  长度范围: {group_min:.6f} - {group_max:.6f} (差值: {group_range:.6f})")
-        print(f"  平均长度: {group_avg:.6f}")
-        print(f"  最大值差异: {max_diff_percent:.2f}%")
-        print(f"  最小值差异: {min_diff_percent:.2f}%")
+        print(f"  中位长度: {group_median:.6f}")
+        print(f"  差值检查: {'通过' if group_range <= max_length_diff else '失败'} (阈值: {max_length_diff})")
     
     # 为每组创建新物体（使用网格）
     created_objects = []
@@ -156,8 +139,6 @@ def main():
         if new_obj.name in bpy.data.objects:
             bpy.data.objects.remove(new_obj, do_unlink=True)
 
-
-        
         print(f"\n创建 {group_name} 组物体:")
         print(f"  包含曲线: {len(indices)} 条")
         print(f"  顶点数量: {len(vertices)} 个")
