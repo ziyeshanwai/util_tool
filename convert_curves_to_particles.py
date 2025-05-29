@@ -153,7 +153,7 @@ def main():
         ob.data.surface_uv_map = head.data.uv_layers[0].name
         bpy.ops.curves.convert_to_particle_system()
         head.particle_systems[new_obj.name].use_hair_dynamics = True
-        if new_obj in bpy.data.objects:
+        if new_obj.name in bpy.data.objects:
             bpy.data.objects.remove(new_obj, do_unlink=True)
 
 
