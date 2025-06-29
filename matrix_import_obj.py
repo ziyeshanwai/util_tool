@@ -46,7 +46,8 @@ def import_and_arrange_objs(folder_path, spacing=2.0):
     
     rows = best_rows
     columns = best_cols
-    
+    rows = 9
+    columns = 30
     print(f"找到 {num_objs} 个OBJ文件")
     print(f"排列布局: {rows} 行 x {columns} 列 (比例: {columns/rows:.2f}:1 ≈ 16:9)")
     
@@ -59,7 +60,7 @@ def import_and_arrange_objs(folder_path, spacing=2.0):
         # 计算位置坐标（X和Z方向）
         # 16:9布局不需要额外调整Z轴比例
         pos_x = (col - (columns - 1) / 2) * spacing
-        pos_z = -((row - (rows - 1) / 2)) * spacing  # 负号使排列从顶部开始
+        pos_z = -((row - (rows - 1) / 2)) * spacing * 1.5  # 负号使排列从顶部开始
         
         # 导入OBJ
         bpy.ops.wm.obj_import(filepath=str(obj_file))
@@ -71,5 +72,5 @@ def import_and_arrange_objs(folder_path, spacing=2.0):
         print(f"已导入: {obj_file.name} 位置: ({pos_x:.2f}, {pos_z:.2f})")
 
 # 使用示例
-folder_path = "E:\PluginsSale\BlendShapeExporter\Samples\BSOutput\Head\Arkit52"
-import_and_arrange_objs(folder_path, spacing=30)
+folder_path = "E:\PluginsSale\BlendShapeExporter\Samples\BSOutput\Head\Metahuman"
+import_and_arrange_objs(folder_path, spacing=25)
